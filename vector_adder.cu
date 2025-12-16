@@ -1,8 +1,9 @@
 #include <stdio.h>
+#include <cassert>
 
-#define N 0x100000
-#define PARALLEL_THREADS 8
-#define NUM_BLOCKS (N + PARALLEL_THREADS - 1) / PARALLEL_THREADS
+static constexpr size_t N = 0x100000;
+static constexpr size_t PARALLEL_THREADS  = 8;
+static constexpr size_t NUM_BLOCKS = (N + PARALLEL_THREADS - 1) / PARALLEL_THREADS;
 
 #define Type_t float
 
@@ -16,6 +17,14 @@ __global__ void add(T* a, T* b, T* c) {
     }
 }
 
+void checkForCudaError() {
+    cudaError_t error = cudaGetLastError();
+    if (error != cudaSuccess) {
+        printf("Error: %s\n", cudaGetErrorString(error));
+        exit(1);
+    }
+}
+
 int main() {
 
     Type_t* d_a;
@@ -26,6 +35,7 @@ int main() {
     cudaMalloc((void **) &d_a, N * sizeof(Type_t));
     cudaMalloc((void **) &d_b, N * sizeof(Type_t));
     cudaMalloc((void **) &d_c, N * sizeof(Type_t));
+    checkForCudaError();
 
     // Allocate Host memory
     Type_t* a = new Type_t[N];
@@ -42,15 +52,18 @@ int main() {
     // Host -> Dev
     cudaMemcpy(static_cast<void*>(d_a), static_cast<void*>(a), N * sizeof(Type_t), cudaMemcpyHostToDevice);
     cudaMemcpy(static_cast<void*>(d_b), static_cast<void*>(b), N * sizeof(Type_t), cudaMemcpyHostToDevice);
+    checkForCudaError();
 
     // kernel execution
     add<Type_t><<<NUM_BLOCKS, PARALLEL_THREADS>>>(d_a, d_b, d_c);
+    checkForCudaError();
 
     // Wait for GPU to finish before accessing on host
     cudaDeviceSynchronize();
 
     // Dev -> Host
     cudaMemcpy(c, d_c, N * sizeof(Type_t), cudaMemcpyDeviceToHost);
+    checkForCudaError();
 
     printf("Last sum[%lu] = %d\n", N - 1, static_cast<int>(c[N-1]));
 
