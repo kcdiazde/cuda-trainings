@@ -28,9 +28,9 @@ int main() {
     cudaMalloc((void **) &d_c, N * sizeof(Type_t));
 
     // Allocate Host memory
-    Type_t* a = static_cast<Type_t *>(malloc(sizeof(Type_t) * N));
-    Type_t* b = static_cast<Type_t *>(malloc(sizeof(Type_t) * N));
-    Type_t* c = static_cast<Type_t *>(malloc(sizeof(Type_t) * N));
+    Type_t* a = new Type_t[N];
+    Type_t* b = new Type_t[N];
+    Type_t* c = new Type_t[N];
 
     // Random values for array
     size_t value = 0;
@@ -53,6 +53,10 @@ int main() {
     cudaMemcpy(c, d_c, N * sizeof(Type_t), cudaMemcpyDeviceToHost);
 
     printf("Last sum[%lu] = %d\n", N - 1, static_cast<int>(c[N-1]));
+
+    cudaFree(d_a);
+    cudaFree(d_b);
+    cudaFree(d_c);
 
     return 0;
 }
